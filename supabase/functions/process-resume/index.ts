@@ -79,12 +79,12 @@ Deno.serve(async (req: Request) => {
       extractedText = 'Failed to extract text. Using AI vision instead.';
     }
 
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) {
+      throw new Error('Gemini API key not configured');
     }
 
-    const structuredData = await parseResumeWithAI(extractedText, openaiApiKey);
+    const structuredData = await parseResumeWithAI(extractedText, geminiApiKey);
 
     return new Response(
       JSON.stringify(structuredData),
@@ -225,38 +225,35 @@ Important:
 - Ensure dates are in "Month Year" format
 - For current positions, set "current": true and "endDate": "Present"
 - Be thorough in extracting all bullet points and details
+
+Return ONLY valid JSON, no other text.
 `;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a professional resume parser. Extract structured data from resumes and return valid JSON only. Do not include any explanations, just the JSON object.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.3,
-      response_format: { type: "json_object" }
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.3,
+        responseMimeType: "application/json"
+      }
     }),
   });
 
   if (!response.ok) {
     const errorData = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
+    throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
   }
 
   const data = await response.json();
-  const content = data.choices[0].message.content;
+  const content = data.candidates[0].content.parts[0].text;
 
   return JSON.parse(content);
 }
