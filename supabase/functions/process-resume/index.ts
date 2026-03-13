@@ -241,8 +241,7 @@ Return ONLY valid JSON, no other text.
         }]
       }],
       generationConfig: {
-        temperature: 0.3,
-        responseMimeType: "application/json"
+        temperature: 0.3
       }
     }),
   });
