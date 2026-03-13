@@ -1,5 +1,6 @@
 import { Upload, FileText, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { ApiKeyInput } from './ApiKeyInput';
 
 interface UploadSectionProps {
   onUploadComplete: (extractedData: any) => void;
@@ -10,6 +11,7 @@ export function UploadSection({ onUploadComplete }: UploadSectionProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string>('');
+  const [geminiApiKey, setGeminiApiKey] = useState<string>('');
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -52,6 +54,11 @@ export function UploadSection({ onUploadComplete }: UploadSectionProps) {
   const processResume = async () => {
     if (!file) return;
 
+    if (!geminiApiKey) {
+      setError('Please enter your Gemini API key first');
+      return;
+    }
+
     setIsProcessing(true);
     setError('');
 
@@ -68,6 +75,7 @@ export function UploadSection({ onUploadComplete }: UploadSectionProps) {
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'x-gemini-api-key': geminiApiKey,
             },
             body: JSON.stringify({ file: base64 }),
           });
@@ -101,6 +109,10 @@ export function UploadSection({ onUploadComplete }: UploadSectionProps) {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-3">Resume Builder</h1>
           <p className="text-lg text-gray-600">Upload your resume and transform it with professional templates</p>
+        </div>
+
+        <div className="mb-6">
+          <ApiKeyInput onApiKeySet={setGeminiApiKey} />
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
