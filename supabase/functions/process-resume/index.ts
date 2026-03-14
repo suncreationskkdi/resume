@@ -67,18 +67,16 @@ Deno.serve(async (req: Request) => {
       throw new Error("No file or text provided");
     }
 
+    const geminiApiKey = req.headers.get('x-gemini-api-key') || Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) {
+      throw new Error('Gemini API key not provided. Please enter your API key in the application.');
+    }
+
     let extractedText = '';
-    let useSupabaseAI = false;
 
     if (text) {
       extractedText = text;
-      useSupabaseAI = true;
     } else {
-      const geminiApiKey = req.headers.get('x-gemini-api-key') || Deno.env.get('GEMINI_API_KEY');
-      if (!geminiApiKey) {
-        throw new Error('Gemini API key not provided. Please enter your API key in the application.');
-      }
-
       const base64Content = file.split(',')[1] || file;
       const pdfBytes = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
 
@@ -90,9 +88,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const structuredData = useSupabaseAI
-      ? await parseResumeWithSupabaseAI(extractedText)
-      : await parseResumeWithGemini(extractedText, req.headers.get('x-gemini-api-key')!);
+    const structuredData = await parseResumeWithGemini(extractedText, geminiApiKey);
 
     return new Response(
       JSON.stringify(structuredData),
@@ -163,88 +159,6 @@ async function extractTextFromPDF(pdfBytes: Uint8Array): Promise<string> {
     console.error('Text extraction error:', error);
     return 'Unable to extract text from PDF';
   }
-}
-
-async function parseResumeWithSupabaseAI(text: string) {
-  const prompt = `You are a resume parsing expert. Extract and structure the following resume text into a JSON format.
-
-Resume Text:
-${text}
-
-Return a JSON object with the following structure:
-{
-  "personalInfo": {
-    "name": "Full Name",
-    "email": "email@example.com",
-    "phone": "+1234567890",
-    "location": "City, State",
-    "linkedin": "linkedin.com/in/username (if available)",
-    "website": "website.com (if available)",
-    "summary": "Professional summary or objective"
-  },
-  "experience": [
-    {
-      "id": "unique-id",
-      "company": "Company Name",
-      "position": "Job Title",
-      "location": "City, State",
-      "startDate": "Month Year",
-      "endDate": "Month Year or Present",
-      "current": false,
-      "description": ["Bullet point 1", "Bullet point 2"]
-    }
-  ],
-  "education": [
-    {
-      "id": "unique-id",
-      "school": "University Name",
-      "degree": "Degree Type",
-      "field": "Field of Study",
-      "location": "City, State",
-      "startDate": "Month Year",
-      "endDate": "Month Year",
-      "gpa": "3.8 (if available)"
-    }
-  ],
-  "skills": ["Skill 1", "Skill 2", "Skill 3"],
-  "certifications": [
-    {
-      "id": "unique-id",
-      "name": "Certification Name",
-      "issuer": "Issuing Organization",
-      "date": "Month Year"
-    }
-  ],
-  "projects": [
-    {
-      "id": "unique-id",
-      "name": "Project Name",
-      "description": "Project description",
-      "technologies": ["Tech 1", "Tech 2"]
-    }
-  ],
-  "selectedTemplate": "modern"
-}
-
-Important:
-- Generate unique IDs using crypto.randomUUID() format
-- Extract all relevant information
-- If information is missing, use empty strings or empty arrays
-- Ensure dates are in "Month Year" format
-- For current positions, set "current": true and "endDate": "Present"
-- Be thorough in extracting all bullet points and details
-
-Return ONLY valid JSON, no other text.`;
-
-  const session = new Supabase.ai.Session('llama-3.2-1b-instruct');
-  const output = await session.run(prompt);
-
-  const jsonMatch = output.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('No JSON found in AI response');
-  }
-
-  return JSON.parse(jsonMatch[0]);
 }
 
 async function parseResumeWithGemini(text: string, apiKey: string) {
