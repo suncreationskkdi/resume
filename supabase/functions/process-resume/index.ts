@@ -236,8 +236,8 @@ Important:
 
 Return ONLY valid JSON, no other text.`;
 
-  const session = new Supabase.ai.Session('meta-llama-3.1-8b-instruct');
-  const output = await session.run(prompt, { temperature: 0.3 });
+  const session = new Supabase.ai.Session('llama-3.2-1b-instruct');
+  const output = await session.run(prompt);
 
   const jsonMatch = output.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
