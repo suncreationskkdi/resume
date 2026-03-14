@@ -61,10 +61,10 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { file } = await req.json();
+    const { file, text } = await req.json();
 
-    if (!file) {
-      throw new Error("No file provided");
+    if (!file && !text) {
+      throw new Error("No file or text provided");
     }
 
     const geminiApiKey = req.headers.get('x-gemini-api-key') || Deno.env.get('GEMINI_API_KEY');
@@ -72,16 +72,20 @@ Deno.serve(async (req: Request) => {
       throw new Error('Gemini API key not provided. Please enter your API key in the application.');
     }
 
-    const base64Content = file.split(',')[1] || file;
-    const pdfBytes = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
-
     let extractedText = '';
 
-    try {
-      extractedText = await extractTextFromPDF(pdfBytes);
-    } catch (error) {
-      console.error('PDF extraction error:', error);
-      extractedText = 'Failed to extract text. Using AI vision instead.';
+    if (text) {
+      extractedText = text;
+    } else {
+      const base64Content = file.split(',')[1] || file;
+      const pdfBytes = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
+
+      try {
+        extractedText = await extractTextFromPDF(pdfBytes);
+      } catch (error) {
+        console.error('PDF extraction error:', error);
+        extractedText = 'Failed to extract text. Using AI vision instead.';
+      }
     }
 
     const structuredData = await parseResumeWithAI(extractedText, geminiApiKey);
