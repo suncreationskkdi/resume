@@ -60,7 +60,7 @@ export function UploadSection({ onUploadComplete }: UploadSectionProps) {
       return;
     }
 
-    if (!geminiApiKey) {
+    if (inputMode === 'file' && !geminiApiKey) {
       setError('Please enter your Gemini API key first');
       return;
     }
@@ -147,9 +147,11 @@ export function UploadSection({ onUploadComplete }: UploadSectionProps) {
           <p className="text-lg text-gray-600">Upload your resume and transform it with professional templates</p>
         </div>
 
-        <div className="mb-6">
-          <ApiKeyInput onApiKeySet={setGeminiApiKey} />
-        </div>
+        {inputMode === 'file' && (
+          <div className="mb-6">
+            <ApiKeyInput onApiKeySet={setGeminiApiKey} />
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex gap-2 mb-6">
