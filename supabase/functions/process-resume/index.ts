@@ -252,7 +252,17 @@ Return ONLY valid JSON, no other text.
   }
 
   const data = await response.json();
+
+  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+    throw new Error('Invalid response from Gemini API');
+  }
+
   const content = data.candidates[0].content.parts[0].text;
 
-  return JSON.parse(content);
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('No JSON found in AI response');
+  }
+
+  return JSON.parse(jsonMatch[0]);
 }

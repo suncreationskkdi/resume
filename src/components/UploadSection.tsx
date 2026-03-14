@@ -80,11 +80,16 @@ export function UploadSection({ onUploadComplete }: UploadSectionProps) {
             body: JSON.stringify({ file: base64 }),
           });
 
+          const data = await response.json();
+
           if (!response.ok) {
-            throw new Error('Failed to process resume');
+            throw new Error(data.error || 'Failed to process resume');
           }
 
-          const data = await response.json();
+          if (data.error) {
+            throw new Error(data.error);
+          }
+
           onUploadComplete(data);
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Failed to process resume');
